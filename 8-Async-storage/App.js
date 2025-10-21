@@ -1,8 +1,9 @@
 import { StyleSheet, Text, View, TextInput, Button,
          FlatList, SafeAreaView } from 'react-native';
+
 import { useState, useEffect } from 'react';
 
-import { LembreteDAO } from './src/dao/LembreteDAO';
+import * as LembreteDAO from './src/dao/LembreteDAO';
 import Lembrete from './src/componentes/Lembrete';
 
 export default function App() {
@@ -10,7 +11,38 @@ export default function App() {
   const [conteudo, setConteudo] = useState('');
   const [lembretes, setLembretes] = useState([]);
 
-  
+  //Sempre que ocorrer uma alteração na lista, envia a notificação para atualização
+  useEffect(() => {
+    //Carrega os dados do arquivo
+    async function carregarDados(){
+      const dados = await LembreteDAO.obterTodos();
+      setLembretes(dados);//Atribui os dados carregados a lista
+    }
+    carregarDados();
+  }, []);
+
+  async function salvarLembrete(){
+    if(titulo.trim() === '' || conteudo.trim() === ''){
+      return;
+    }
+    //Cria um novo Lembrete para gravar no banco
+    const novoLembrete = {
+      id : Date.now(),
+      titulo : titulo,
+      conteudo : conteudo,
+      dataCriacao : new Date(Date.now()).toLocaleDateString('pt-BR'),
+      finalizado : false,
+    }
+    //Adiciona o novo lembrete a lista
+    let novaLista;
+    novaLista = [...lembretes, novoLembrete];
+    setLembretes(novaLista);
+    //Grava a nova lista no arquivo
+    await LembreteDAO.salvarTodos(novaLista);
+    //Limpa os campos de entrada
+    setTitulo('');
+    setConteudo('');
+  }
 
   function finalizar(id){
     const lembrete = lembretes.find(item => item.id === id);
@@ -36,7 +68,7 @@ export default function App() {
                    value={titulo} onChangeText={setTitulo}/>
         <TextInput style={styles.entrada} placeholder='Conteúdo'
                    value={conteudo} onChangeText={setConteudo} />
-        <Button title='Gravar' />
+        <Button title='Gravar' onPress={salvarLembrete}/>
       </View>
 
       <FlatList 
