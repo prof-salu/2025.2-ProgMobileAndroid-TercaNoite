@@ -1,8 +1,8 @@
 import {View, Text, StyleSheet, Button, TouchableOpacity} from 'react-native';
 
-export default function Lembrete({item, onFinalizar}){
+export default function Lembrete({item, onFinalizar, onApagar, onEditar}){
     return(
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => onEditar(item)}>
             <View style={[styles.itemLista]}>
                 <View style={[styles.dados, item.finalizado && styles.itemFinalizado]}>
                     <Text style={styles.itemTitulo}>{item.titulo}</Text>
@@ -12,7 +12,7 @@ export default function Lembrete({item, onFinalizar}){
 
                 <View style={styles.botoes}>
                     <Button title={item.finalizado ? 'Reabrir' : 'Finalizar'} onPress={() => onFinalizar(item.id)}/>
-                    <TouchableOpacity style={styles.botaoApagar}>
+                    <TouchableOpacity style={styles.botaoApagar} onPress={() => onApagar(item.id)}>
                         <Text style={styles.textoApagar}>X</Text>
                     </TouchableOpacity>
                 </View>

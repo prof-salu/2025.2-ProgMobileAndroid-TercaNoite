@@ -10,6 +10,9 @@ export default function App() {
   const [titulo, setTitulo] = useState('');
   const [conteudo, setConteudo] = useState('');
   const [lembretes, setLembretes] = useState([]);
+  const [dataCriacao, setDataCriacao] = useState('');
+  const [editando, setEditando] = useState(null);
+
 
   //Sempre que ocorrer uma alteração na lista, envia a notificação para atualização
   useEffect(() => {
@@ -25,26 +28,53 @@ export default function App() {
     if(titulo.trim() === '' || conteudo.trim() === ''){
       return;
     }
-    //Cria um novo Lembrete para gravar no banco
-    const novoLembrete = {
-      id : Date.now(),
-      titulo : titulo,
-      conteudo : conteudo,
-      dataCriacao : new Date(Date.now()).toLocaleDateString('pt-BR'),
-      finalizado : false,
-    }
-    //Adiciona o novo lembrete a lista
-    let novaLista;
-    novaLista = [...lembretes, novoLembrete];
-    setLembretes(novaLista);
-    //Grava a nova lista no arquivo
-    await LembreteDAO.salvarTodos(novaLista);
+
+    if(editando){
+      const lembreteAlterado = {
+        ...editando,
+        titulo : titulo,
+        conteudo : conteudo,
+      }
+      const novaLista = lembretes.map(item => 
+        (item.id === editando.id) ? lembreteAlterado : item
+    );                                                                                                          
+    }else{
+      //Cria um novo Lembrete para gravar no banco
+      const novoLembrete = {
+        id : Date.now(),
+        titulo : titulo,
+        conteudo : conteudo,
+        dataCriacao : new Date(Date.now()).toLocaleDateString('pt-BR'),
+        finalizado : false,
+      }
+      //Adiciona o novo lembrete a lista
+      let novaLista;
+      novaLista = [...lembretes, novoLembrete];
+      setLembretes(novaLista);
+      //Grava a nova lista no arquivo
+      await LembreteDAO.salvarTodos(novaLista); 
+  }
     //Limpa os campos de entrada
     setTitulo('');
     setConteudo('');
+    setDataCriacao('');
+    setEditando(null);
   }
 
-  function finalizar(id){
+  async function apagarLembrete(id){
+    const novaLista = lembretes.filter(item => item.id !== id);
+    setLembretes(novaLista);
+    await LembreteDAO.salvarTodos(novaLista);
+  }
+
+  function alterarLembrete(lembrete){
+    setEditando(lembrete);
+    setTitulo(lembrete.titulo);
+    setConteudo(lembrete.conteudo);
+    setDataCriacao(lembrete.dataCriacao);
+  }
+
+  async function finalizar(id){
     const lembrete = lembretes.find(item => item.id === id);
 
     if(!lembrete){
@@ -52,11 +82,21 @@ export default function App() {
     }
 
     const lembreteAtualizado = {
-      ...lembrete, finalizado : !lembrete,
+      ...lembrete, finalizado : !lembrete.finalizado,
       dataFinalizacao : !lembrete.finalizado 
         ? new Date().toLocaleDateString('pt-BR')
         : null
     }
+
+    const novaLista = lembretes.map(item => 
+      (item.id === id) ? lembreteAtualizado : item
+    );
+
+    // Atualizar o estado
+    setLembretes(novaLista);
+
+    // Salvar no AsyncStorage
+    await LembreteDAO.salvarTodos(novaLista);
   }
 
   return (
@@ -75,7 +115,8 @@ export default function App() {
         data={lembretes}
         keyExtractor={(item) => item.id}
         renderItem={({item}) => (
-          <Lembrete item={item} onFinalizar={finalizar}/>
+          <Lembrete item={item} onFinalizar={finalizar} 
+                    onApagar={apagarLembrete} onEditar={alterarLembrete}/>
         )} />
     </SafeAreaView>
   );
